@@ -1280,13 +1280,15 @@ export const productFiltersPostV2 = async (req: TypedRequestBody<{
         pageNumber = 1,
         perPage = 10,
     } = req.body;
-    
-    
+
+
+
+
     try {
-        
+
         let pipe = [];
-        
-        
+
+
         // select attributes
         let attributesValues = {};
         if (attributes && Object.keys(attributes).length > 0) {
@@ -1296,45 +1298,62 @@ export const productFiltersPostV2 = async (req: TypedRequestBody<{
                 }
             }
         }
-        
+
         let categoryIdsOBjs: ObjectId[] = []
         categoryIds?.forEach((id) => {
             categoryIdsOBjs.push(new ObjectId(id))
         })
-        
+
         const db = await mongoConnect()
         let collection = db.collection("products")
-        const result = await collection.aggregate([
-            {
-                
-                $match: {
-                    $and: [
-                        categoryIds && categoryIds.length > 0
-                            ? {
-                                categoryId: {$in: categoryIdsOBjs},
-                            }
-                            : {},
-                        brandIds && brandIds.length > 0
-                            ? {
-                                brandId: {$in: [...brandIds]},
-                            }
-                            : {},
-                    ],
-                    $or: [
-                        Object.keys(attributesValues).length > 0
-                            ? {
-                                ...attributesValues,
-                            }
-                            : {},
-                    ],
-                },
+
+        let filter = {
+            $match: {
+                $and: [
+                    categoryIds && categoryIds.length > 0
+                        ? {
+                            categoryId: {$in: categoryIdsOBjs},
+                        }
+                        : {},
+                    brandIds && brandIds.length > 0
+                        ? {
+                            brandId: {$in: [...brandIds]},
+                        }
+                        : {},
+                ],
+                $or: [
+                    Object.keys(attributesValues).length > 0
+                        ? {
+                            ...attributesValues,
+                        }
+                        : {},
+                ],
             },
+        }
+
+        let total = undefined
+        if(pageNumber == 1){
+            total = await collection.aggregate([
+                filter,
+                {$count: "totalDocuments"}
+            ]).toArray();
+        }
+
+        const result = await collection.aggregate([
+            filter,
+            {$skip: (Number(pageNumber) - 1) * Number(perPage)},
+            {$limit: Number(perPage)},
         ]).toArray();
-        
-        successResponse(res, 200, result)
+
+        let totalDocument = undefined;
+        if (total && total.length > 0) {
+            totalDocument = total[0].totalDocuments
+        }
+
+        successResponse(res, 200, {products: result, totalItems: totalDocument})
         
     } catch (ex) {
-        console.log(ex)
+        next(ex)
     }
     
     // try {

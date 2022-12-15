@@ -50,7 +50,7 @@ export const getBrands = async (req: Request, res: Response, next: NextFunction)
         // let Skip = (perPage as number) * (pageNumber as number - 1)
         
         let brands = await Brand.find<Brand[]>()
-        successResponse(res, StatusCode.Ok, {time: Date.now() - start, data: brands})
+        successResponse(res, StatusCode.Ok, brands)
         
     } catch (ex) {
         next(ex)
