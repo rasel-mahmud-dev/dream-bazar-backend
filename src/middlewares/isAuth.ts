@@ -26,7 +26,6 @@ function isAuth() {
                             errorResponse(next, "Unauthorized. Your are not a member", 403)
                         }
                     } catch (ex) {
-                        console.log(ex)
                         errorResponse(next, "Unauthorized. Please login", 403)
                     }
 
