@@ -1304,6 +1304,15 @@ export const productFiltersPostV2 = async (req: TypedRequestBody<{
             categoryIdsOBjs.push(new ObjectId(id))
         })
 
+
+        let brandObjectIds = []
+        brandIds.forEach(brand=>{
+            if(brand.length === 24) {
+                brandObjectIds.push(new ObjectId(brand))
+            }
+        })
+
+
         const db = await mongoConnect()
         let collection = db.collection("products")
 
@@ -1315,9 +1324,9 @@ export const productFiltersPostV2 = async (req: TypedRequestBody<{
                             categoryId: {$in: categoryIdsOBjs},
                         }
                         : {},
-                    brandIds && brandIds.length > 0
+                    brandObjectIds && brandObjectIds.length > 0
                         ? {
-                            brandId: {$in: [...brandIds]},
+                            brandId: {$in: [...brandObjectIds]},
                         }
                         : {},
                 ],
