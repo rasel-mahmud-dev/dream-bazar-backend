@@ -7,7 +7,7 @@ export interface ProductDescriptionType {
     productId?: string | ObjectId
     summary?: string
     videoLink?: string
-    details?: {}
+    specification?: {}
     highlight?: string[],
     sellerRules?: string[],
     shippingCost?: number
@@ -23,7 +23,7 @@ class ProductDescription extends Base implements ProductDescriptionType {
     productId?: string | ObjectId
     summary?: string
     videoLink?: string
-    details?: {}
+    specification?: {}
     highlight?: string[]
     sellerRules?: string[]
     shippingCost?: number
@@ -41,7 +41,7 @@ class ProductDescription extends Base implements ProductDescriptionType {
         if(!data) return
         this.productId = data.productId
         this.summary = data.summary
-        this.details = data.details
+        this.specification = data.specification
         this.highlight = data.highlight
         this.sellerRules = data.sellerRules
         this.shippingCost = data.shippingCost

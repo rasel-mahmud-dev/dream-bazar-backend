@@ -15,6 +15,7 @@ import Attributes from "../models/Attributes";
 import {Covert} from "../dataConvert";
 import ProductDescription from "../models/ProductDescription";
 import {uploadImage} from "../services/cloudinary";
+import slugify from "slugify";
 
 export const getProductCount = async (
     req: Request,
@@ -60,25 +61,56 @@ export const getProducts = async (
 };
 
 export const getProduct = async (req: Request, res: Response, next: NextFunction) => {
-    if (!isObjectId(req.params.id)) {
-        return res.send("please send product id");
-    }
+
+    const {slug} = req.params;
+
+
     
     try {
+
         let product = await Product.aggregate([
-                { $match: { _id: new ObjectId(req.params.id)}},
-                { $lookup: {
-                    from: "product_descriptions",
-                        localField: "_id",
-                        foreignField: "productId",
-                        as: "productDescription"
-                }},
-                { $unwind: { path: "$productDescription", preserveNullAndEmptyArrays: true } }
+                { $match: { slug: slug }},
+                // { $lookup: {
+                //     from: "product_descriptions",
+                //         localField: "_id",
+                //         foreignField: "productId",
+                //         as: "productDescription"
+                // }},
+                // { $unwind: { path: "$productDescription", preserveNullAndEmptyArrays: true } }
             ]
         );
        
         if(product) {
-            successResponse(res, 200, product[0]);
+            successResponse(res, StatusCode.Ok, product[0]);
+        }
+    } catch (ex) {
+        next(ex);
+    } finally {
+    }
+};
+
+export const getProductDetail = async (req: Request, res: Response, next: NextFunction) => {
+
+    const {productId} = req.params;
+
+
+
+    try {
+
+        let product = await ProductDescription.aggregate([
+                { $match: { productId: new ObjectId(productId) }},
+                // { $lookup: {
+                //     from: "product_descriptions",
+                //         localField: "_id",
+                //         foreignField: "productId",
+                //         as: "productDescription"
+                // }},
+                // { $unwind: { path: "$productDescription", preserveNullAndEmptyArrays: true } }
+            ]
+        );
+
+        if(product) {
+            successResponse(res, StatusCode.Ok, product[0]);
         }
     } catch (ex) {
         next(ex);
@@ -87,170 +119,6 @@ export const getProduct = async (req: Request, res: Response, next: NextFunction
 };
 
 
-// export const getProduct = async (req, res, next)=>{
-//
-//   if(!isObjectId(req.params.id)){
-//     return res.send('please send product id')
-//   }
-//
-//   try {
-//
-//
-//     let p = await collections.products.aggregate([
-//       { $match: { _id: new ObjectId(req.params.id) } },
-//       {
-//         $lookup: {
-//           from: "categories",
-//           localField: "category_id",
-//           foreignField: "_id",
-//           as: "category"
-//         }
-//       },
-//       {
-//         $lookup: {
-//           from: "brands",
-//           localField: "brand_id",
-//           foreignField: "_id",
-//           as: "brand"
-//         }
-//       },
-//       {
-//         $lookup: {
-//           from: "sellers",
-//           localField: "seller_id",
-//           foreignField: "_id",
-//           as: "seller"
-//         }
-//       },
-//       { $unwind: { path: "$seller", preserveNullAndEmptyArrays: true } },
-//       {
-//         $lookup: {
-//           from: "users",
-//           localField: "seller.customer_id",
-//           foreignField: "_id",
-//           as: "seller.seller_desc"
-//         }
-//       },
-//       { $unwind: { path: "$seller.seller_desc", preserveNullAndEmptyArrays: true } },
-//       {
-//         $project: {
-//           title: 1,
-//           seller_id: 1,
-//           seller: {
-//             customer_id: 1,
-//             shop_name: 1,
-//             seller_info: {
-//               username: 1,
-//               email: 1
-//             }
-//           },
-//           qty: 1,
-//           sold: 1,
-//           views: 1,
-//           "category_id": 1,
-//           "price": 1,
-//           "brand_id": 1,
-//           "created_at": 1,
-//           "attributes": 1,
-//           "cover_photo": 1,
-//           "discount": 10,
-//           "images": 1,
-//           "updated_at": 1
-//         }
-//       }
-//     ])
-//
-//
-//     // const { c: ProductCollection, client: cc} = await dbConnect("products")
-//     // client = cc
-//     //
-//     // let cursor =  ProductCollection.aggregate([
-//     //   { $match: { _id: new ObjectId(req.params.id) } },
-//     //   {
-//     //     $lookup: {
-//     //       from: "categories",
-//     //       localField: "category_id",
-//     //       foreignField: "_id",
-//     //       as: "category"
-//     //     }
-//     //   },
-//     //   {
-//     //     $lookup: {
-//     //       from: "brands",
-//     //       localField: "brand_id",
-//     //       foreignField: "_id",
-//     //       as: "brand"
-//     //     }
-//     //   },
-//     //   {
-//     //     $lookup: {
-//     //       from: "sellers",
-//     //       localField: "seller_id",
-//     //       foreignField: "_id",
-//     //       as: "seller"
-//     //     }
-//     //   },
-//     //   { $unwind: { path: "$seller", preserveNullAndEmptyArrays: true } },
-//     //   {
-//     //     $lookup: {
-//     //       from: "users",
-//     //       localField: "seller.customer_id",
-//     //       foreignField: "_id",
-//     //       as: "seller.seller_desc"
-//     //     }
-//     //   },
-//     //   { $unwind: { path: "$seller.seller_desc", preserveNullAndEmptyArrays: true } },
-//     //   {
-//     //     $project: {
-//     //       title: 1,
-//     //       seller_id: 1,
-//     //       seller: {
-//     //         customer_id: 1,
-//     //         shop_name: 1,
-//     //         seller_info: {
-//     //           username: 1,
-//     //           email: 1
-//     //         }
-//     //       },
-//     //       qty: 1,
-//     //       sold: 1,
-//     //       views: 1,
-//     //       "category_id": 1,
-//     //       "price": 1,
-//     //       "brand_id": 1,
-//     //       "created_at": 1,
-//     //       "attributes": 1,
-//     //       "cover_photo": 1,
-//     //       "discount": 10,
-//     //       "images": 1,
-//     //       "updated_at": 1
-//     //     }
-//     //   }
-//     // ])
-//     //
-//     // let product = {}
-//     //
-//     // await cursor.forEach(p=>{
-//     //   product = p
-//     // })
-//     //
-//     // if(product){
-//     //   return res.json({product: product})
-//     //
-//     // } else {
-//     //   res.status(404).json({message: "Product Not Found"})
-//     // }
-//
-//     return res.json({product: p[0]})
-//
-//   } catch (ex){
-//     console.log("-================");
-//     next(ex)
-//   } finally {
-//     // client?.close()
-//   }
-//
-// }
 
 // export const productUpdateForAttributeChange = async (req: Request, res: Response, next: NextFunction) => {
 // 	const { id } = req.params;

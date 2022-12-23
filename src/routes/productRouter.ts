@@ -6,7 +6,7 @@ import {
     getHomepageSectionProducts,
     getProduct,
     getProductAttributes,
-    getProductCount,
+    getProductCount, getProductDetail,
     getProducts,
     productFilters,
     productFiltersGetV2,
@@ -59,7 +59,8 @@ export default function (app: Router) {
     app.get("/api/products/filter/v2", productFiltersGetV2)
     
     app.post("/api/products/home-section", getHomepageSectionProducts)
-    
+
+
     // app.patch("/api/product/:id", productUpdateForAttributeChange)
     
     
@@ -77,9 +78,10 @@ export default function (app: Router) {
     
     
     app.post("/api/products/copy", saveProductsAsDuplicate)
-    
-    app.get("/api/product/:id", getProduct)
-    
+
+    app.get("/api/product/:slug", getProduct)
+    app.get("/api/product/detail/:productId", getProductDetail)
+
     app.put("/api/products/:id", updateProductPutReq)
     app.post("/api/upload", uploadHandler)
     

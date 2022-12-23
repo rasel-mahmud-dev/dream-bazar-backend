@@ -1,10 +1,12 @@
 import {ObjectId} from "mongodb";
 import {IndexType} from "../services/mongodb/models.index.types";
 import Base from "./Base";
+import slugify from "slugify";
 
 export interface ProductType {
     _id?: ObjectId | string,
     title: string,
+    slug: string,
     price: number,
     discount?: number
     attributes?: object,
@@ -28,6 +30,7 @@ export interface ProductType {
 class Product extends Base implements ProductType {
     public _id?: ObjectId | string
     public title: string
+    public slug: string
     public price: number
     public discount?: number
     public attributes?: object
@@ -62,6 +65,7 @@ class Product extends Base implements ProductType {
         super(Product.collectionName)
         if(!data) return
         this.title = data.title
+        this.slug = slugify(data.title)
         this.price = data.price
         this.discount = data.discount
         this.attributes = data.attributes
