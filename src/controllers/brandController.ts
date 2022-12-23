@@ -57,6 +57,23 @@ export const getBrands = async (req: Request, res: Response, next: NextFunction)
     }
 }
 
+export const getBrandsInfo = async (req: Request, res: Response, next: NextFunction) => {
+
+    let {brandName} =  req.params
+
+    try {
+
+        let names = brandName.split("___").filter(item=> !!item)
+
+
+        let brands = await Brand.find<Brand[]>({name: {$in: names }})
+        successResponse(res, StatusCode.Ok, brands)
+
+    } catch (ex) {
+        next(ex)
+    }
+}
+
 export const getBrand = async (req: Request, res: Response, next: NextFunction) => {
     try {
         let brand = await Brand.findOne<Brand>({_id: new ObjectId(req.params.id)})

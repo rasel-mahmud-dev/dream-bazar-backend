@@ -3,7 +3,7 @@ import {
     getBrand,
     getBrands,
     getBrandsCount,
-    getBrandsForCategory,
+    getBrandsForCategory, getBrandsInfo,
     saveBrands,
     updateBrand
 } from "../controllers/brandController"
@@ -21,7 +21,9 @@ export default function (app: Router) {
     app.get("/api/brands", getBrands)
 
     // get brand from collection
-    app.get("/api/brand/:id", getBrand)
+    app.get("/api/brand/:id", getBrand)    // get brand from collection
+
+    app.get("/api/brands/info/:brandName", getBrandsInfo)
 
     // save brand in collection
     app.post("/api/brand", isAuth(), permission([Roles.ADMIN]), saveBrands)
