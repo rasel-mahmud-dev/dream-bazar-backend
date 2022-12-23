@@ -15,8 +15,6 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
     const {email, password, scope} = req.body;
     
     try {
-        const database = await mongoConnect();
-        
         if (!(email && password)) {
             return errorResponse(next, 'Please provide valid credential', StatusCode.Forbidden)
         }
@@ -38,11 +36,6 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
         const isMatched = await hashCompare(password, user.password)
         if (!isMatched) {
             return errorResponse(next, 'Password Error', 404)
-        }
-        
-        
-        if(!user.roles.includes(scope)){
-            return errorResponse(next, 'Unauthorized your are not ' + scope, StatusCode.Unauthorized)
         }
         
         let token = createToken(user._id as any, user.email, user.roles)

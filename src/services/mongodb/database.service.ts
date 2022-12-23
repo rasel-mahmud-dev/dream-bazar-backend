@@ -1,15 +1,19 @@
 import * as mongoDB from "mongodb";
 import {Db, MongoClient} from "mongodb";
 
-const mongoClient = new MongoClient(process.env.DB_CONN_STRING as string);
+const mongoClient = new MongoClient(process.env.NODE_ENV === "development"
+        ? "mongodb://127.0.0.1:27017" :
+    process.env.DB_CONN_STRING as string
+);
 const clientPromise = mongoClient.connect();
 let database: Db;
+let DB_NAME = "dream-bazar"
 
 export async function mongoConnect() {
     return new Promise<mongoDB.Db>((async (resolve, reject) => {
         try {
             if (!database) {
-                database = (await clientPromise).db(process.env.DB_NAME);
+                database = (await clientPromise).db(DB_NAME);
             }
             resolve(database)
         } catch (ex) {
@@ -43,8 +47,8 @@ export async function initialMongodbIndexes() {
         try {
             let client = (await clientPromise)
             
-            let db = client.db(process.env.DB_NAME);
-            
+            let db = client.db(DB_NAME);
+
             COLLECTIONS.forEach((colItem) => {
                 let collection = db.collection(colItem.collectionName)
                 let indexes = colItem.indexes;

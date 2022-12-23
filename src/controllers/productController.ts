@@ -354,6 +354,7 @@ export const saveProduct = async (
                 productType,
                 sku: Number(sku),
                 title,
+                slug: slugify(title, {lower: true, replacement: "-", locale: "en"}),
                 price: Number(price),
                 discount: Number(discount),
                 brandId: new ObjectId(brandId),
@@ -414,7 +415,7 @@ export const saveProduct = async (
                     minOrder: Number(minOrder),
                     tax: Number(tax),
                     highlight: [],
-                    details: {},
+                    specification: {},
                     sellerRules: [],
                     videoLink: videoLink,
                     shippingCost: Number(shippingCost),
@@ -422,7 +423,7 @@ export const saveProduct = async (
                 })
                 
                 try {
-                    productDescription.details = JSON.parse(details)
+                    productDescription.specification = JSON.parse(details)
                 } catch (ex) {
                 }
                 try {
@@ -537,7 +538,7 @@ export const updateProduct = async (
             try{
                 // if provide valid json
                 if(details) {
-                    updateProductDetail.details = JSON.parse(details)
+                    updateProductDetail.specification = JSON.parse(details)
                 }
             } catch (ex){}
     

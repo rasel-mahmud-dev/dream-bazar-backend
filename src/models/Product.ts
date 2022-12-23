@@ -52,6 +52,7 @@ class Product extends Base implements ProductType {
     
     static indexes: IndexType = {
         title: {},
+        slug: {unique: true},
         categoryId: {},
         sellerId: {},
         attributes: {},
