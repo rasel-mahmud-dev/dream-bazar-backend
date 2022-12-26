@@ -282,7 +282,7 @@ export const saveProduct = async (
     fileUpload(req, async (err, {fields, files}) => {
         try {
             if (err) return errorResponse(next, "Form data parsing error")
-            
+
             if (!files) return errorResponse(next, "No File found")
             
             let {
@@ -302,7 +302,7 @@ export const saveProduct = async (
                 productType,
                 minOrder = 1,
                 attributes = "{}",
-                details = "{}"
+                specification = "{}"
             } = fields as any;
             
             const db = await mongoConnect()
@@ -348,13 +348,14 @@ export const saveProduct = async (
                 res.status(409).json({message: errors});
                 return;
             }
-            
-            
+
+            let removeBadCharacter = title.replace(/["!@#.<$%^&*()>?/|}{]/g, "")
+
             let newProduct: Product | null = new Product({
                 productType,
                 sku: Number(sku),
                 title,
-                slug: slugify(title, {lower: true, replacement: "-", locale: "en"}),
+                slug: slugify(removeBadCharacter, {lower: true, replacement: "-", locale: "en", strict: true, trim: true}),
                 price: Number(price),
                 discount: Number(discount),
                 brandId: new ObjectId(brandId),
@@ -402,12 +403,11 @@ export const saveProduct = async (
             }
 
             if(isFail){
-                return  errorResponse(next, "File Upload fail")
+                return errorResponse(next, "File Upload fail")
             }
-            
+
             newProduct = await newProduct.save<Product>()
-            
-            
+
             if (newProduct) {
                 let productDescription = new ProductDescription({
                     productId: newProduct._id,
@@ -423,7 +423,7 @@ export const saveProduct = async (
                 })
                 
                 try {
-                    productDescription.specification = JSON.parse(details)
+                    productDescription.specification = JSON.parse(specification)
                 } catch (ex) {
                 }
                 try {
@@ -435,18 +435,24 @@ export const saveProduct = async (
                 } catch (ex) {
                 }
                 
-                await ProductDetailCollection.updateOne(
+                ProductDetailCollection.updateOne(
                     {productId: new ObjectId(newProduct._id)},
                     {$set: productDescription},
                     {upsert: true}
-                )
+                ).then(()=>{
+
+                    successResponse(res, StatusCode.Created, {
+                        message: "Product added successfully",
+                        product: newProduct,
+                    });
+
+                })
+                    .catch(async (ex)=>{
+                        await Product.deleteById(newProduct._id.toString())
+                        next(ex);
+                })
                 
-                
-                successResponse(res, StatusCode.Created, {
-                    message: "Product added",
-                    product: newProduct,
-                });
-                
+
             } else {
                 errorResponse(next, "Internal error", StatusCode.InternalServerError)
             }

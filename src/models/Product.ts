@@ -66,7 +66,7 @@ class Product extends Base implements ProductType {
         super(Product.collectionName)
         if(!data) return
         this.title = data.title
-        this.slug = slugify(data.title)
+        this.slug = data.slug
         this.price = data.price
         this.discount = data.discount
         this.attributes = data.attributes

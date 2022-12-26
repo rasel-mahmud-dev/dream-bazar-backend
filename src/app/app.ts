@@ -11,8 +11,7 @@ require('dotenv').config()
 
 import routes from "../routes"
 
-import {initialMongodbIndexes} from "../services/mongodb/database.service";
-
+// import {initialMongodbIndexes} from "../services/mongodb/database.service";
 
 // create all mongodb collection indexes
 // initialMongodbIndexes()
