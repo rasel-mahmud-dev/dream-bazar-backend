@@ -1834,6 +1834,8 @@ export async function addAttribute(req: Request, res: Response, next: NextFuncti
             isMultiple,
             options,
         })
+
+        // console.log(attr)
         
         attr = await attr.save()
         

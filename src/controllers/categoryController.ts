@@ -1,5 +1,5 @@
 import {errorResponse, successResponse} from "../response"
-import {NextFunction, Request, Response} from "express";
+import  {NextFunction, Request, Response} from "express";
 import Category from "../models/Category";
 import isObjectId from "../utilities/isObjectId";
 import {StatusCode, TypedRequestBody} from "../types";
@@ -7,6 +7,7 @@ import {StatusCode, TypedRequestBody} from "../types";
 import {ObjectId} from "mongodb"
 import CategoryDetail from "../models/CategoryDetail";
 import Attributes from "../models/Attributes";
+
 
 export const getCategoriesCount = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -17,6 +18,10 @@ export const getCategoriesCount = async (req: Request, res: Response, next: Next
     }
 }
 
+
+/**
+ get all flat database categories
+ */
 export const getCategories = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const categories = await Category.find<Category[]>({})
@@ -27,8 +32,13 @@ export const getCategories = async (req: Request, res: Response, next: NextFunct
     }
 }
 
+/**
+ Get flat single category
+ */
 export const getCategory = async (req: Request, res: Response, next: NextFunction) => {
     const {name, parentId, id} = req.query
+
+
     try {
         if(id){
             const category  = await Category.findOne({_id: new ObjectId(id as string)})
@@ -39,14 +49,14 @@ export const getCategory = async (req: Request, res: Response, next: NextFunctio
             const category  = await Category.findOne({name: name})
             if (!category) return errorResponse(next, "category not found", 404)
             return successResponse(res, StatusCode.Ok, category)
-            
+
         }
         if (parentId && isObjectId(parentId)) {
             const category  = await Category.findOne({parentId: parentId})
             if (!category) return  errorResponse(next, "category not found", 404)
             return successResponse(res, StatusCode.Ok, category)
         }
-        
+
         errorResponse(next, "please provide query params name or parentId", 500)
         
     } catch (ex) {

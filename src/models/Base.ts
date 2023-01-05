@@ -32,7 +32,8 @@ class Base {
         return new Promise<T | null>(async (resolve, reject) => {
             try {
                 let {collectionName, ...other} = this;
-                let doc = await (await Base.getDatabase(collectionName)).insertOne({
+
+                let doc = await (await Base.getDatabase(Base.collectionName)).insertOne({
                     ...other
                 });
 
@@ -108,10 +109,11 @@ class Base {
     }
 
 
-    static findOne<T>(filter?: mongoDB.Filter<mongoDB.Document>) {
+    static findOne<T>(filter: mongoDB.Filter<mongoDB.Document>) {
         return new Promise<T>(async (resolve, reject) => {
             try {
-                let doc = await (await Base.getDatabase(this.collectionName)).findOne() as T
+                let doc = (await Base.getDatabase(this.collectionName)).findOne(filter) as T
+                console.log(doc)
                 resolve(doc);
             } catch (ex) {
                 reject(ex);
@@ -119,12 +121,12 @@ class Base {
         });
     }
 
-    static find<T>(filter?: mongoDB.Filter<mongoDB.Document>) {
+    static find<T>(filter?: mongoDB.Filter<mongoDB.Document>, options?: mongoDB.FindOptions<mongoDB.Document>) {
         Base.collectionName = this.collectionName
         return new Promise<T>(async (resolve, reject) => {
             try {
                 let docs = await (await Base.getDatabase(this.collectionName))
-                    .find(filter ? filter : {})
+                    .find(filter ? filter : {}, options)
                     .toArray() as T
                 resolve(docs);
             } catch (ex) {

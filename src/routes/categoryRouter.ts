@@ -8,7 +8,7 @@ import {
     getCategories,
     getCategoriesCount,
     getCategory,
-    getCategoryDetail,
+    getCategoryDetail, getDeepNestedCategory, getDeepNestedCategoryOne,
     saveCategory,
     updateCategory,
     updateCategoryDetail
@@ -20,14 +20,13 @@ import isAuth from "../middlewares/isAuth";
 
 export default function (app: Router) {
     
-    
     // public routes
     app.get("/api/categories/count", getCategoriesCount)
     
     // public routes
     app.get("/api/categories", getCategories)
-    
-    
+
+
     // public routes
     app.post("/api/category", isAuth(), permission([Roles.ADMIN]), saveCategory)
     

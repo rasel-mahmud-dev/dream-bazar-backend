@@ -80,6 +80,8 @@ export default function (app: Router) {
     app.post("/api/products/copy", saveProductsAsDuplicate)
 
     app.get("/api/product/:slug", getProduct)
+
+
     app.get("/api/product/detail/:productId", getProductDetail)
 
     app.put("/api/products/:id", updateProductPutReq)
