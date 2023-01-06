@@ -66,31 +66,42 @@ export const getCategory = async (req: Request, res: Response, next: NextFunctio
 }
 
 // add a new category
-export const saveCategory = async (req: TypedRequestBody<{ name: string, parentId: string, isProductLevel: boolean }>, res: Response, next: NextFunction) => {
+export const saveCategory = async (req: Request, res: Response, next: NextFunction) => {
     
-    const { name, parentId, isProductLevel} = req.body
-    
+    const { name, parentId, isProductLevel,  defaultExpand, filterAttributes, renderProductAttr=[], productDescriptionSection={}} = req.body
+
+
     try {
-        
+
+        if(!(filterAttributes && filterAttributes.length > 0)){
+            return errorResponse(next, "Please provide valid credential", StatusCode.Forbidden)
+        }
+
         let category = await Category.findOne({name})
         if (category) {
-            return errorResponse(next, "Category already exist")
+            return errorResponse(next, "Category Already exists", StatusCode.Conflict)
         }
-        
+
+
         let newCategory = new Category({
             name,
-            parentId: parentId ? parentId : "000000000000000000000000",
+            parentId: parentId ? parentId : null,
             logo: "",
-            isProductLevel: isProductLevel
+            isProductLevel: isProductLevel,
+            defaultExpand,
+            filterAttributes,
+            renderProductAttr,
+            productDescriptionSection,
         })
-        
+
+
         newCategory = await newCategory.save<any>()
-        
-        
+
         if (!newCategory) {
             return errorResponse(next, "Internal error. Please try Again")
         }
-        successResponse(res, 201, {
+
+        successResponse(res, StatusCode.Created, {
             message: "category created",
             category: newCategory
         })
@@ -247,40 +258,8 @@ export const updateCategoryDetail = async (req: Request, res: Response, next: Ne
         next(ex)
     }
 }
-export const addCategoryDetail = async (req: Request, res: Response, next: NextFunction)=>{
-    try {
-        
-        const {catId, defaultExpand, filterAttributes, renderProductAttr=[], catName, productDescriptionSection={} } = req.body
-        
-        if(!(catId && filterAttributes && filterAttributes.length > 0)){
-            return errorResponse(next, "Please provide valid credential", StatusCode.Forbidden)
-        }
-        
-        let cat = await CategoryDetail.findOne({catId: new ObjectId(catId)})
-        if(cat){
-            return errorResponse(next, "Already exists", StatusCode.Conflict)
-        }
 
-        let newCatDetail = new CategoryDetail({
-            catId: new ObjectId(catId),
-            defaultExpand,
-            filterAttributes,
-            catName,
-             renderProductAttr,
-            productDescriptionSection,
-        })
-        
-        let doc = await newCatDetail.save()
-        if(doc){
-           successResponse(res, StatusCode.Created, doc)
-        } else {
-            errorResponse(next, "Create fail", StatusCode.InternalServerError)
-        }
-        
-    } catch(ex){
-        next(ex)
-    }
-}
+
 
 export const deleteCategoryDetail = async (req: Request, res: Response, next: NextFunction)=>{
     try {

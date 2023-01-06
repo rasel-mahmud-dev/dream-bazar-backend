@@ -8,7 +8,7 @@ import {
     getCategories,
     getCategoriesCount,
     getCategory,
-    getCategoryDetail, getDeepNestedCategory, getDeepNestedCategoryOne,
+    getCategoryDetail,
     saveCategory,
     updateCategory,
     updateCategoryDetail
@@ -16,6 +16,7 @@ import {
 import permission from "../middlewares/permission";
 import {Roles} from "../types";
 import isAuth from "../middlewares/isAuth";
+
 
 
 export default function (app: Router) {
@@ -42,8 +43,7 @@ export default function (app: Router) {
     app.get("/api/category/category-detail", getCategoryDetail)
     
     app.patch("/api/category/detail/:detailId", isAuth(), permission([Roles.ADMIN, Roles.SELLER]), updateCategoryDetail)
-    
-    app.post("/api/category/detail", isAuth(), permission([Roles.ADMIN]), addCategoryDetail)
+
     
     app.delete("/api/category/detail/:detailId", isAuth(), permission([Roles.ADMIN]), deleteCategoryDetail)
 }
