@@ -1,5 +1,6 @@
 import Base from "./Base";
 import {IndexType} from "../services/mongodb/models.index.types";
+import {AttributesType} from "./Attributes";
 
 
 export interface CategoryType {
@@ -14,6 +15,9 @@ export interface CategoryType {
     productDescriptionSection?: {[key: string]: string[]}
     createdAt?: Date | string
     updatedAt?: Date | string
+
+
+    filterAttributesValues?: AttributesType[] // populated field
 }
 
 class Category extends Base implements CategoryType {
@@ -28,6 +32,8 @@ class Category extends Base implements CategoryType {
     productDescriptionSection?: {[key: string]: string[]}
     createdAt?: Date | string = new Date()
     updatedAt?: Date | string = new Date()
+
+
     
     static indexes: IndexType = {
         name: {

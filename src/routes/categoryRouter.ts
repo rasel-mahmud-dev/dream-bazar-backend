@@ -1,49 +1,39 @@
 import {Router} from "express";
 
 import {
-    addCategoryDetail,
     deleteCategory,
-    deleteCategoryDetail,
-    getAllCategoryDetails,
     getCategories,
     getCategoriesCount,
     getCategory,
-    getCategoryDetail,
     saveCategory,
-    updateCategory,
-    updateCategoryDetail
+    updateCategory
 } from "../controllers/categoryController"
+
+
 import permission from "../middlewares/permission";
 import {Roles} from "../types";
 import isAuth from "../middlewares/isAuth";
 
 
-
-export default function (app: Router) {
-    
-    // public routes
-    app.get("/api/categories/count", getCategoriesCount)
-    
-    // public routes
-    app.get("/api/categories", getCategories)
+const router = Router()
 
 
-    // public routes
-    app.post("/api/category", isAuth(), permission([Roles.ADMIN]), saveCategory)
-    
-    // admin routes
-    app.patch("/api/category/:id", isAuth(), permission([Roles.ADMIN]),updateCategory)
-    
-    app.get("/api/category", getCategory)
-    
-    app.delete("/api/category/:id", isAuth(), permission([Roles.ADMIN]), deleteCategory)
-    
-    app.get("/api/category/category-details", isAuth(), permission([Roles.ADMIN]), getAllCategoryDetails)
-    
-    app.get("/api/category/category-detail", getCategoryDetail)
-    
-    app.patch("/api/category/detail/:detailId", isAuth(), permission([Roles.ADMIN, Roles.SELLER]), updateCategoryDetail)
+// public routes
+router.get("/categories/count", getCategoriesCount)
 
-    
-    app.delete("/api/category/detail/:detailId", isAuth(), permission([Roles.ADMIN]), deleteCategoryDetail)
-}
+// public routes
+router.get("/categories", getCategories)
+
+
+// public routes
+router.post("/category", isAuth(), permission([Roles.ADMIN]), saveCategory)
+
+// admin routes
+router.patch("/category/:id", isAuth(), permission([Roles.ADMIN]), updateCategory)
+
+router.get("/category", getCategory)
+
+router.delete("/category/:id", isAuth(), permission([Roles.ADMIN]), deleteCategory)
+
+
+export default router;

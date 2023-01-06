@@ -20,21 +20,22 @@ export const getBrandsCount = async (req: Request, res: Response, next: NextFunc
 
 export const getBrandsForCategory = async (req: Request, res: Response, next: NextFunction) => {
     
-    const {forCategory} = req.body
+    const {categories = []} = req.body
     
     try {
-        const collection = await mongoConnect()
-        
-        if (forCategory) {
-            let allBrands = await collection.collection("brands").find({
+        if (categories) {
+
+            let allBrands = await Brand.find({
                 forCategory: {
-                    $in: forCategory
+                    $in: categories
                 }
-            }).toArray();
-            
-            res.status(200).json({brands: allBrands})
+            }, {
+                projection: {name: 1}
+            })
+
+            successResponse(res, StatusCode.Ok, {brands: allBrands})
         } else {
-            res.status(200).json({brands: []})
+            successResponse(res, StatusCode.Ok, {brands: []})
         }
         
     } catch (ex) {

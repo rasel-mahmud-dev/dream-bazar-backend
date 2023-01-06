@@ -13,26 +13,27 @@ import permission from "../middlewares/permission";
 import {Roles} from "../types";
 
 
-export default function (app: Router) {
-    
-    app.get("/api/brands/count", getBrandsCount)
+const router = Router()
 
-    // get brands from collection
-    app.get("/api/brands", getBrands)
+router.get("/brands/count", getBrandsCount)
 
-    // get brand from collection
-    app.get("/api/brand/:id", getBrand)    // get brand from collection
+// get brands from collection
+router.get("/brands", getBrands)
 
-    app.get("/api/brands/info/:brandName", getBrandsInfo)
+// get brand from collection
+router.get("/brand/:id", getBrand)    // get brand from collection
 
-    // save brand in collection
-    app.post("/api/brand", isAuth(), permission([Roles.ADMIN]), saveBrands)
+router.get("/brands/info/:brandName", getBrandsInfo)
 
-    // get brand for category
-    app.post("/api/brands/for-category", getBrandsForCategory)
+// save brand in collection
+router.post("/brand", isAuth(), permission([Roles.ADMIN]), saveBrands)
 
-    // update brand in collection
-    app.patch("/api/brand/:id", isAuth(), permission([Roles.ADMIN]), updateBrand)
+// get brand for category
+router.post("/brands-category", getBrandsForCategory)
 
-    app.delete("/api/brand/:id", isAuth(), permission([Roles.ADMIN]), deleteBrand)
-}
+// update brand in collection
+router.patch("/brand/:id", isAuth(), permission([Roles.ADMIN]), updateBrand)
+
+router.delete("/brand/:id", isAuth(), permission([Roles.ADMIN]), deleteBrand)
+
+export default router;

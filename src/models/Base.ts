@@ -66,6 +66,22 @@ class Base {
         });
     }
 
+    static findAndUpdate<T>(filter: mongoDB.Filter<mongoDB.Document>, update: Partial<mongoDB.Document> | mongoDB.UpdateFilter<mongoDB.Document>) {
+        return new Promise<T | null>(async (resolve, reject) => {
+            try {
+                let {collectionName, ...other} = this;
+                let doc = await (await Base.getDatabase(collectionName)).findOneAndUpdate(filter, update);
+                if (doc) {
+                    resolve(other as T)
+                } else {
+                    resolve(null);
+                }
+            } catch (ex) {
+                reject(ex);
+            }
+        });
+    }
+
     static findOneAndUpdate(
         filter: mongoDB.Filter<mongoDB.Document>,
         update: mongoDB.UpdateFilter<mongoDB.Document>

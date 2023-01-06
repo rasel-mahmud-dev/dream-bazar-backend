@@ -10,33 +10,34 @@ import {googleLoginController} from "../controllers/authController";
 const authController = require("../controllers/authController")
 
 
-export default function (app: Router){
-  
-  app.post("/api/auth/login", authController.login)
-  
-  app.post("/api/admin/login", adminLogin)
+const router = Router()
 
-  app.post("/api/auth/registration", authController.registration)
+router.post("/auth/login", authController.login)
 
-  // @ts-ignore
-    app.get("/api/auth/current-auth", isAuth(),  authController.currentAuth)
-    
-    app.get("/api/auth/admin/current-auth",adminAuthLoading)
-  
-  // app.get("/api/auth/fetch-profile/:user_id", isAuth, authController.fetchProfile)
-  //
+router.post("/admin/login", adminLogin)
+
+router.post("/auth/registration", authController.registration)
+
+
+router.get("/auth/current-auth", isAuth(), authController.currentAuth)
+
+router.get("/auth/admin/current-auth", adminAuthLoading)
+
+
+// router.get("/auth/fetch-profile/:user_id", isAuth, authController.fetchProfile)
+//
 
 // GET /auth/google
 //   Use passport.authenticate() as route middleware to authenticate the
 //   request.  The first step in Google authentication will involve
 //   redirecting the user to google.com.  After authorization, Google
-//   will redirect the user back to this application at /auth/google/callback
+//   will redirect the user back to this routerlication at /auth/google/callback
 
 
 // route call via react js
-app.get('/api/auth/google',
-  passport.authenticate('google', { scope : ['profile', 'email'] }));
- 
+router.get('/auth/google',
+    passport.authenticate('google', {scope: ['profile', 'email']}));
+
 
 // GET /auth/google/callback
 //   Use passport.authenticate() as route middleware to authenticate the
@@ -45,25 +46,25 @@ app.get('/api/auth/google',
 //   which, in this example, will redirect the user to the home page.
 
 // call by react js when google callback 
-app.get('/api/auth/callback/google', passport.authenticate('google'), googleLoginController)
+router.get('/auth/callback/google', passport.authenticate('google'), googleLoginController)
 
 
-app.get('/api/auth/facebook',
-  passport.authenticate('facebook')
+router.get('/auth/facebook',
+    passport.authenticate('facebook')
 );
 
 
-app.get('/api/auth/callback/facebook',
-  passport.authenticate('facebook'),
-  function(req, res) {
-    // Successful authentication, redirect home.
-    // res.redirect('/');
-    console.log("okkk")
-  });
+router.get('/auth/callback/facebook',
+    passport.authenticate('facebook'),
+    function (req, res) {
+        // Successful authentication, redirect home.
+        // res.redirect('/');
+        console.log("okkk")
+    });
 
 // route call via react js
-// app.get('/api/auth/facebook', async (req, res)=>{ 
-  
+// router.get('/auth/facebook', async (req, res)=>{
+
 //     // var my_date = Date.now()
 //   // console.log(mongodb.ISODate())
 //     const { c: UserCollection, client} = await dbConnect("users") 
@@ -82,5 +83,5 @@ app.get('/api/auth/callback/facebook',
 // })
 //   // passport.authenticate('google', { scope : ['profile', 'email'] }));
 
-}
+export default router;
 
