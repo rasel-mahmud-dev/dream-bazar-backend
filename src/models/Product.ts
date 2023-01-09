@@ -1,7 +1,7 @@
 import {ObjectId} from "mongodb";
 import {IndexType} from "../services/mongodb/models.index.types";
 import Base from "./Base";
-import slugify from "slugify";
+
 
 export interface ProductType {
     _id?: ObjectId | string,
@@ -23,6 +23,7 @@ export interface ProductType {
     isActive: boolean
     sku: number
     isMall: boolean
+    storeId: ObjectId | string
     productType: "Digital" | "Physical"
 }
 
@@ -48,7 +49,8 @@ class Product extends Base implements ProductType {
     public sku: number
     public productType: "Digital" | "Physical"
     public isMall: boolean
-    
+    public storeId: ObjectId | string
+
     
     static indexes: IndexType = {
         title: {},
@@ -84,6 +86,7 @@ class Product extends Base implements ProductType {
         this.sku = data.sku
         this.productType = data.productType
         this.isMall = data.isMall
+        this.sellerId = data.sellerId
     }
 }
 

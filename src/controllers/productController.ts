@@ -16,6 +16,7 @@ import {Covert} from "../dataConvert";
 import ProductDescription from "../models/ProductDescription";
 import {uploadImage} from "../services/cloudinary";
 import slugify from "slugify";
+import parseJson from "../utilities/parseJson";
 
 export const getProductCount = async (
     req: Request,
@@ -62,23 +63,38 @@ export const getProducts = async (
 
 export const getProduct = async (req: Request, res: Response, next: NextFunction) => {
 
-    const {slug} = req.params;
+    const {slug, id} = req.params;
 
 
     
     try {
-
-        let product = await Product.aggregate([
-                { $match: { slug: slug }},
-                // { $lookup: {
-                //     from: "product_descriptions",
-                //         localField: "_id",
-                //         foreignField: "productId",
-                //         as: "productDescription"
-                // }},
-                // { $unwind: { path: "$productDescription", preserveNullAndEmptyArrays: true } }
-            ]
-        );
+        console.log(id)
+        let product: unknown = {}
+        if(id) {
+            product = await Product.aggregate([
+                    {$match: {_id: new ObjectId(id)}},
+                    // { $lookup: {
+                    //     from: "product_descriptions",
+                    //         localField: "_id",
+                    //         foreignField: "productId",
+                    //         as: "productDescription"
+                    // }},
+                    // { $unwind: { path: "$productDescription", preserveNullAndEmptyArrays: true } }
+                ]
+            );
+        } else {
+            product = await Product.aggregate([
+                    {$match: {slug: slug}},
+                    // { $lookup: {
+                    //     from: "product_descriptions",
+                    //         localField: "_id",
+                    //         foreignField: "productId",
+                    //         as: "productDescription"
+                    // }},
+                    // { $unwind: { path: "$productDescription", preserveNullAndEmptyArrays: true } }
+                ]
+            );
+        }
        
         if(product) {
             successResponse(res, StatusCode.Ok, product[0]);
@@ -97,15 +113,16 @@ export const getProductDetail = async (req: Request, res: Response, next: NextFu
 
     try {
 
-        let product = await ProductDescription.aggregate([
-                { $match: { productId: new ObjectId(productId) }},
-                // { $lookup: {
-                //     from: "product_descriptions",
-                //         localField: "_id",
-                //         foreignField: "productId",
-                //         as: "productDescription"
-                // }},
-                // { $unwind: { path: "$productDescription", preserveNullAndEmptyArrays: true } }
+
+        let product = await Product.aggregate([
+                { $match: { _id: new ObjectId(productId) }},
+                { $lookup: {
+                    from: "product_descriptions",
+                        localField: "_id",
+                        foreignField: "productId",
+                        as: "productDescription"
+                }},
+                { $unwind: { path: "$productDescription", preserveNullAndEmptyArrays: true } }
             ]
         );
 
@@ -271,6 +288,8 @@ export const updateProductPutReq = async (req: Request, res: Response, next: Nex
     }
 };
 
+
+
 // add new product
 export const saveProduct = async (
     req: Request,
@@ -304,17 +323,11 @@ export const saveProduct = async (
                 attributes = "{}",
                 specification = "{}"
             } = fields as any;
+
             
-            const db = await mongoConnect()
-            const ProductCollection = db.collection("products")
-            
-            let product = await ProductCollection.findOne({title: title})
-            if(product) return  errorResponse(next, "Product Name already exists")
-            
-            product = await ProductCollection.findOne({sku: Number(sku)})
-            if(product) return  errorResponse(next, "Product Sku already exists")
-            
-            const ProductDetailCollection = db.collection("product_descriptions")
+            let product = await Product.findOne({ $or: [{sku: Number(sku), title: title}] })
+            if(product) return  errorResponse(next, "Product Name or Sku already exists")
+
             
             let validate = new Validator(
                 {
@@ -368,14 +381,20 @@ export const saveProduct = async (
                 views: 0,
                 attributes: JSON.parse(attributes),
                 coverPhoto: "",
-                isApproved: req.authUser.roles.includes(Roles.ADMIN),
-                isActive: req.authUser.roles.includes(Roles.ADMIN),
-                isMall: req.authUser.roles.includes(Roles.ADMIN)
+                isApproved: !!req.authUser.roles.includes(Roles.ADMIN),
+                isActive: !!req.authUser.roles.includes(Roles.ADMIN),
+                isMall: !!req.authUser.roles.includes(Roles.ADMIN),
+                storeId: new ObjectId(req.authUser.storeId),
             });
-            
-            try{
-                newProduct.attributes = JSON.parse(attributes)
-            } catch (ex){}
+
+
+
+            // filter attributes
+            let attributesObj = await parseJson(attributes)
+            if(attributesObj) {
+                newProduct.attributes = attributesObj
+            }
+
             
             let images: string[] = []
             let promises: any[] = []
@@ -422,20 +441,31 @@ export const saveProduct = async (
                     summary: summary,
                 })
                 
-                try {
-                    productDescription.specification = JSON.parse(specification)
-                } catch (ex) {
+
+
+
+                let highlightArray = await parseJson(highlight)
+                // if provide valid json
+                if(highlightArray) {
+                    productDescription.highlight = highlightArray
                 }
-                try {
-                    productDescription.highlight = JSON.parse(highlight)
-                } catch (ex) {
+
+
+                let sellerRulesArray = await parseJson(sellerRules)
+                // if provide valid json
+                if(sellerRulesArray) {
+                    productDescription.sellerRules = sellerRulesArray
                 }
-                try {
-                    productDescription.sellerRules = JSON.parse(sellerRules)
-                } catch (ex) {
+
+
+                let specificationObj = await parseJson(specification)
+                // if provide valid json
+                if(specificationObj) {
+                    productDescription.specification = specificationObj
                 }
-                
-                ProductDetailCollection.updateOne(
+
+
+                ProductDescription.findAndUpdate(
                     {productId: new ObjectId(newProduct._id)},
                     {$set: productDescription},
                     {upsert: true}
@@ -448,7 +478,9 @@ export const saveProduct = async (
 
                 })
                     .catch(async (ex)=>{
-                        await Product.deleteById(newProduct._id.toString())
+                        if(newProduct?._id) {
+                            await Product.deleteById(newProduct._id.toString())
+                        }
                         next(ex);
                 })
                 
@@ -475,9 +507,12 @@ export const updateProduct = async (
     
     
     try {
-        
+
+
         fileUpload<ProductType>(req, async (err, {fields, files}) => {
-    
+
+            if (err) return errorResponse(next, "Form data parsing error")
+
             let {
                 title,
                 price,
@@ -495,16 +530,21 @@ export const updateProduct = async (
                 videoLink,
                 sellerRules = "[]",
                 highlight = "[]",
-                summary,
+                summary="",
                 attributes = "{}",
-                details = "{}"
+                specification = "{}"
             } = fields as any;
-            
+
+
             if (!sku) return errorResponse(next, "Please Provide Product SKU code")
-        
-    
+
+
+            let product = await Product.findOne<Product>({ $or: [{sku: Number(sku), title: title}] })
+            if(!product) return  errorResponse(next, "Product not found", StatusCode.NotFound)
+
+
             if (err) return errorResponse(next, "Form data parsing error")
-            let updateProduct: Product = new Product()
+            let updateProduct = {...product}
             if (title) updateProduct.title = title
             if (price) updateProduct.price = Covert.number(price)
             if (discount) updateProduct.discount = Covert.number(discount)
@@ -516,21 +556,20 @@ export const updateProduct = async (
             if (sku) updateProduct.sku = Covert.number(sku)
     
     
-            try{
-                // if provide valid json
-                if(attributes) {
-                    updateProduct.attributes = JSON.parse(attributes)
-                }
-            } catch (ex){}
-  
-            
+
+            let attributesObj = await parseJson(attributes)
+            if(attributesObj) {
+                updateProduct.attributes = attributesObj
+            }
+
+
             // only change it admin
             if (req.authUser.roles.includes(Roles.ADMIN)) {
                 if (fields?.isApproved) updateProduct.isApproved = Covert.boolean(fields.isApproved)
+                updateProduct.isMall = true;
             }
             
             if (isActive) updateProduct.isActive = Covert.boolean(isActive)
-    
     
             // detail collection
             let updateProductDetail: ProductDescription = new ProductDescription()
@@ -540,46 +579,50 @@ export const updateProduct = async (
             if (videoLink) updateProductDetail.videoLink = videoLink
             if (tax) updateProductDetail.tax = Covert.number(tax)
             if (minOrder) updateProductDetail.minOrder = Covert.number(minOrder)
+
+
+            let highlightArray = await parseJson(highlight)
+            // if provide valid json
+            if(highlightArray) {
+                updateProductDetail.highlight = highlightArray
+            }
+
+
+            let sellerRulesArray = await parseJson(sellerRules)
+
+            // if provide valid json
+            if(sellerRulesArray) {
+                updateProductDetail.sellerRules = sellerRulesArray
+            }
+
+
+            let specificationObj = await parseJson(specification)
+            // if provide valid json
+            if(specificationObj) {
+                updateProductDetail.specification = specificationObj
+            }
+
+            console.log(updateProduct)
     
-            try{
-                // if provide valid json
-                if(details) {
-                    updateProductDetail.specification = JSON.parse(details)
-                }
-            } catch (ex){}
-    
-            try{
-                // if provide valid json
-                if(details) {
-                    updateProductDetail.highlight = JSON.parse(highlight)
-                }
-                
-            } catch (ex){}        try{
-                // if provide valid json
-                if(details) {
-                    updateProductDetail.sellerRules = JSON.parse(sellerRules)
-                }
-            } catch (ex){}
-            
-    
-            let doc = await (await Product.collection).updateOne({_id: new ObjectId(id)},
-                {$set: updateProduct}
-            );
-            
-            // if(doc.ok){
-            //     (await ProductDescription.collection()).findOneAndUpdate(
+            // let result = await Product.findAndUpdate<Product>({_id: new ObjectId(id)},
+            //     {$set: updateProduct}
+            // );
+            //
+            //
+            // if(result){
+            //     await ProductDescription.findAndUpdate(
             //         {productId: new ObjectId(id)},
             //         {$set: updateProductDetail},
             //         { upsert: true }
+            //     ).then(()=>{
+            //         successResponse(res, 201, {message: "product updated", updateProduct});
             //
-            //     );
-            // }
+            //     }).catch(ex=>{
+            //         errorResponse(next, "product update fail", StatusCode.InternalServerError);
             //
-            // if (true) {
-            //     successResponse(res, 201, {message: "product updated", updateProduct});
-            // } else {
-            //     errorResponse(next, "product update fail", StatusCode.InternalServerError);
+            //     })
             // }
+
         })
     } catch (ex) {
         next(ex);
@@ -588,278 +631,11 @@ export const updateProduct = async (
 };
 
 
+
 // make duplicate product
 export const saveProductsAsDuplicate = async (req: Request, res: Response, next: NextFunction) => {
-    let client;
-    
-    // try{
-    //   fileUploadHandler(req, "src/static/upload", "image", async (err, ctx)=> {
-    //
-    //     if (err) {
-    //       console.log(err.message)
-    //       throw new Error(err.message)
-    //     }
-    //
-    //     let {
-    //       title,
-    //       price,
-    //       discount,
-    //       brand_id,
-    //       category_id,
-    //       seller_id,
-    //       qty,
-    //       sold,
-    //       views,
-    //       attributes,
-    //       cover_photo,
-    //       images,
-    //       removePhoto
-    //     } = ctx.fields
-    //
-    //     try {
-    //
-    //       let validate = new Validator({
-    //         title: {type: "text", required: true},
-    //         price: {type: "number", required: true},
-    //         discount: {type: "number", required: true},
-    //         brand_id: {type: "text", required: true},
-    //         category_id: {type: "text", required: true},
-    //         seller_id: {type: "text", required: true},
-    //         updated_at: {type: "text", required: true},
-    //         created_at: {type: "text", required: true},
-    //         qty: {type: "number", required: true},
-    //         sold: {type: "number", required: true},
-    //         views: {type: "number", required: true},
-    //         attributes: {type: "object", required: true},
-    //         cover_photo: {type: "text", required: true, errorMessage: "not allowed"},
-    //         image: {type: "text", required: true}
-    //       }, {abortEarly: true})
-    //
-    //       let errors = validate.validate({
-    //         title,
-    //         price,
-    //         discount,
-    //         brand_id,
-    //         category_id,
-    //         seller_id,
-    //         qty,
-    //         sold,
-    //         views,
-    //         attributes: attributes && attributes !== "" ? JSON.parse(attributes) : {}
-    //       })
-    //
-    //
-    //       // if(errors){
-    //       //   res.status(409).json({message: errors})
-    //       //   return
-    //       // }
-    //
-    //       let newProduct: any = {
-    //         title,
-    //         price: Number(price),
-    //         discount: Number(discount),
-    //         brand_id: new ObjectId(brand_id),
-    //         category_id: new ObjectId(category_id),
-    //         seller_id: new ObjectId("6165b0ecd28d389c0a4dbc57"),
-    //         updated_at: new Date(),
-    //         created_at: new Date(),
-    //         qty: Number(qty),
-    //         sold: Number(sold),
-    //         views: Number(views),
-    //         attributes: attributes && attributes !== "" ? JSON.parse(attributes) : {}
-    //       }
-    //
-    //       let uploadedImages: string[] = []
-    //
-    //       if (ctx.files.image) {
-    //         ctx.files.image.forEach(link => {
-    //           uploadedImages.push(link.path)
-    //         })
-    //       }
-    //
-    //       if (images && typeof images === "string") {
-    //         uploadedImages.push(...JSON.parse(images))
-    //       }
-    //
-    //
-    //       newProduct.images = uploadedImages
-    //       if (cover_photo) {
-    //         if (cover_photo.indexOf("/") !== -1) {
-    //           newProduct.cover_photo = cover_photo
-    //         } else {
-    //           newProduct.images.forEach(i => {
-    //             if (i.indexOf(cover_photo)) {
-    //               newProduct.cover_photo = i
-    //             }
-    //           })
-    //         }
-    //       } else {
-    //         newProduct.cover_photo = uploadedImages[0]
-    //       }
-    //
-    //       let r = await Product.insertInto(newProduct)
-    //       let product_id = r.insertedId
-    //
-    //
-    //       const {
-    //         description,
-    //         seller_rules,
-    //         highlight,
-    //         details
-    //       } = ctx.fields
-    //
-    //       let productDescriptionValidator = new Validator({
-    //         description: {type: "text", required: true},
-    //         seller_rules: {type: "object", required: true},
-    //         highlight: {type: "object", required: false},
-    //         details: {type: "object", required: false},
-    //         product_id: {type: "object", required: false}
-    //       })
-    //
-    //       let e = productDescriptionValidator.validate({
-    //         description,
-    //         seller_rules: JSON.parse(seller_rules),
-    //         highlight: JSON.parse(highlight),
-    //         details: JSON.parse(details),
-    //         product_id: product_id
-    //       })
-    //       if (e) {
-    //         return res.send("product adding fail")
-    //       }
-    //
-    //       let des = await ProductDescription.insertInto({
-    //         description,
-    //         seller_rules: JSON.parse(seller_rules),
-    //         highlight: JSON.parse(highlight),
-    //         details: JSON.parse(details),
-    //         product_id: product_id
-    //       })
-    //
-    //       res.status(200).json({message: "Product Successfully Added"})
-    //
-    //     } catch (ex){
-    //       await client?.close()
-    //       console.log(ex)
-    //       res.json({ message: ex.message + ' not save product' })
-    //     } finally {
-    //       await client?.close()
-    //     }
-    //   })
-    //
-    //
-    //   // const {  db, client: cc} = await dbConnect()
-    //   // client = cc
-    //   //
-    //   // const ProductCollection  = db.collection("products")
-    //   // const ProductDescriptionCollection = db.collection("product_descriptions")
-    //   //
-    //   //
-    //   //
-    //   // let imagesLink = []
-    //   // let cover_photo = ""
-    //   //
-    //   // fileUploadHandler(req, "upload", "image", async (err, ctx)=>{
-    //   //   if(err){
-    //   //     throw new Error(r)
-    //   //   }
-    //   //
-    //   //
-    //   //   if(ctx?.files?.image){
-    //   //     for (let i = 0; i < ctx.files.image.length; i++) {
-    //   //       const link = ctx.files.image[i];
-    //   //       imagesLink.push(link.path)
-    //   //       if(ctx?.fields?.cover_photo){
-    //   //         let match = link.path.lastIndexOf(ctx.fields.cover_photo)
-    //   //         if(match !== -1){
-    //   //           cover_photo = link.path
-    //   //         }
-    //   //       }
-    //   //     }
-    //   //   }
-    //   //
-    //   //
-    //   //   const { _id, details, highlight, description, attributes, ...other } = ctx.fields
-    //   //
-    //   //   // console.log(other);
-    //   //   // console.log(details, highlight, description);
-    //   //
-    //   //   let newProduct = {}
-    //   //   newProduct.title = other.title
-    //   //   newProduct.price = Number(other.price)
-    //   //   newProduct.qty = Number(other.qty)
-    //   //   newProduct.sold = Number(other.sold)
-    //   //   newProduct.views = Number(other.views)
-    //   //   newProduct.discount = Number(other.discount)
-    //   //   newProduct.images = imagesLink
-    //   //   newProduct.cover_photo = cover_photo
-    //   //   if(attributes && JSON.parse(attributes)){
-    //   //     newProduct.attributes = JSON.parse(attributes)
-    //   //   }
-    //   //
-    //   //   newProduct.category_id =  new ObjectId(other.category_id)
-    //   //   newProduct.brand_id =  new ObjectId(other.brand_id)
-    //   //   newProduct.created_at = new Date()
-    //   //   newProduct.updated_at = new Date()
-    //   //
-    //   //
-    //   //   let resposnse = await ProductCollection.insertOne(newProduct)
-    //   //   if(resposnse.acknowledged){
-    //   //     let respons = await ProductDescriptionCollection.insertOne({
-    //   //       details: JSON.parse(details),
-    //   //       highlight: JSON.parse(highlight),
-    //   //       description: description,
-    //   //       product_id: resposnse.insertedId
-    //   //     })
-    //   //
-    //   //     if(respons.acknowledged){
-    //   //       // let product = {...respons.ops[0] }
-    //   //       console.log(respons);
-    //   //     }
-    //   //   }
-    //
-    //
-    //     // if(response.insertedCount > 0){
-    //
-    //     //   let product = {...response.ops[0] }
-    //
-    //     //   let brandData = await BrandCollection.findOne(
-    //     //     {_id: new ObjectId(product.brand_id)})
-    //
-    //     //   let categoryData = await CategoryCollection.findOne(
-    //     //     {_id: new ObjectId(product.category_id)})
-    //
-    //     //   product = {
-    //     //     ...product,
-    //     //     brand: {name: brandData.name },
-    //     //     category: { name: categoryData.name  }
-    //     //   }
-    //
-    //
-    //
-    //     //   res.json({ product: product })
-    //     // }
-    //
-    //
-    //     // if(insertedCount > 0){
-    //     //   let cta = await CategoryCollection.findOne(
-    //     //     {_id: new ObjectId(cursor.ops[0].category_id)},
-    //     //     {name: 1}
-    //     //   )
-    //     //   res.json({ products: cursor.ops })
-    //     // } else{
-    //     //   res.json({ message: 'not save product' })
-    //     // }
-    //
-    //
-    //   // })
-    //
-    // } catch(ex){
-    //   console.log(ex.message)
-    //   next(ex)
-    // } finally {
-    //   // client?.close()
-    // }
 };
+
 
 export const fetchCategoryProducts = async (req: Request, res: Response, next: NextFunction) => {
     const {categoryId} = req.params;
@@ -868,101 +644,12 @@ export const fetchCategoryProducts = async (req: Request, res: Response, next: N
     let client;
 };
 
-// product filter for client Frontend Home Page
-// export const productFilterHomePage = async (req: Request, res: Response, next: NextFunction) => {
-// 	const { pageNumber = 1, perPage = 10, type } = req.query;
-//
-// 	let client;
-//
-// 	try {
-// 		const { c: ProductCollection, client: cc } = await dbConnect("products");
-// 		client = cc;
-// 		// console.log(type)
-// 		let cursor;
-//
-// 		if (type === "most-popular") {
-// 			// sort by views and pick 5 to 10 frist item from database
-// 			cursor = ProductCollection.aggregate([
-// 				{ $sort: { views: -1 } },
-// 				{ $skip: perPage * (pageNumber - 1) },
-// 				{ $limit: Number(perPage) },
-// 			]);
-// 		} else if (type === "most-updated") {
-// 			cursor = ProductCollection.aggregate([
-// 				{ $sort: { created_at: -1 } },
-// 				{ $skip: perPage * (pageNumber - 1) },
-// 				{ $limit: Number(perPage) },
-// 			]);
-// 		} else if (type === "top-selling") {
-// 			cursor = ProductCollection.aggregate([
-// 				{ $sort: { sold: -1 } },
-// 				{ $skip: perPage * (pageNumber - 1) },
-// 				{ $limit: Number(perPage) },
-// 			]);
-// 		} else if (type === "top-views") {
-// 			cursor = ProductCollection.aggregate([
-// 				{ $sort: { views: -1 } },
-// 				{ $skip: perPage * (pageNumber - 1) },
-// 				{ $limit: Number(perPage) },
-// 			]);
-// 		} else if (type === "top-views-length") {
-// 			cursor = ProductCollection.aggregate([
-// 				{ $sort: { views: -1 } }, // sort deasce order,
-// 				{ $limit: 100 }, // choose 1 to 100 item
-// 				{
-// 					/// count document
-// 					$group: {
-// 						_id: null,
-// 						count: { $sum: 1 },
-// 					},
-// 				},
-// 			]);
-//
-// 			let ppp = [];
-// 			await cursor.forEach((p) => {
-// 				ppp.push(p);
-// 			});
-// 			return res.send(ppp[0]);
-// 		} else if (type === "top-selling-length") {
-// 			cursor = ProductCollection.aggregate([
-// 				{ $sort: { sold: -1 } }, // sort deasce order,
-// 				{ $limit: 100 }, // choose 1 to 100 item
-// 				{
-// 					/// count document
-// 					$group: {
-// 						_id: null,
-// 						count: { $sum: 1 },
-// 					},
-// 				},
-// 			]);
-//
-// 			let ppp = [];
-// 			await cursor.forEach((p) => {
-// 				ppp.push(p);
-// 			});
-// 			return res.send(ppp[0]);
-// 		}
-//
-// 		let pp = [];
-// 		await cursor.forEach((p) => {
-// 			pp.push(p);
-// 		});
-//
-// 		res.json({ products: pp });
-// 	} catch (ex) {
-// 		console.log(ex);
-// 		next(ex);
-// 	} finally {
-// 		client?.close();
-// 	}
-// };
+
 
 export const productFiltersPost = async (req: Request, res: Response, next: NextFunction) => {
-    const {pageNumber, perPage, type, ids} = req.body;
-    
-    let client;
     
 };
+
 
 
 export const productFiltersGetV2 = async (req: Request, res: Response, next: NextFunction) => {
@@ -1150,7 +837,7 @@ export const productFiltersPostV2 = async (req: TypedRequestBody<{
     let {
         sortBy,
         categoryIds,
-        brandIds,
+        brandIds= [],
         attributes,
         pageNumber = 1,
         perPage = 10,
@@ -1174,13 +861,15 @@ export const productFiltersPostV2 = async (req: TypedRequestBody<{
             }
         }
 
+        console.log(attributesValues)
+
         let categoryIdsOBjs: ObjectId[] = []
         categoryIds?.forEach((id) => {
             categoryIdsOBjs.push(new ObjectId(id))
         })
 
 
-        let brandObjectIds = []
+        let brandObjectIds: ObjectId[] = []
         brandIds.forEach(brand=>{
             if(brand.length === 24) {
                 brandObjectIds.push(new ObjectId(brand))
@@ -1215,7 +904,7 @@ export const productFiltersPostV2 = async (req: TypedRequestBody<{
             },
         }
 
-        let total = undefined
+        let total
         if(pageNumber == 1){
             total = await collection.aggregate([
                 filter,
@@ -1228,6 +917,7 @@ export const productFiltersPostV2 = async (req: TypedRequestBody<{
             {$skip: (Number(pageNumber) - 1) * Number(perPage)},
             {$limit: Number(perPage)},
         ]).toArray();
+
 
         let totalDocument = undefined;
         if (total && total.length > 0) {
@@ -1824,18 +1514,20 @@ export async function addAttribute(req: Request, res: Response, next: NextFuncti
         const {
             attributeName,
             attributeLabel,
-            isMultiple,
+            isRange=false,
             options,
         } = req.body
-        
+
+        let attribute = await Attributes.findOne({attributeName: attributeName})
+        if(attribute) return errorResponse(next, "Attribute already exists", StatusCode.Conflict);
+
         let attr: any = new Attributes({
             attributeName,
             attributeLabel,
-            isMultiple,
+            isRange,
             options,
         })
 
-        // console.log(attr)
         
         attr = await attr.save()
         
@@ -1853,7 +1545,7 @@ export async function updateAttribute(req: Request, res: Response, next: NextFun
         const {
             attributeName,
             attributeLabel,
-            isMultiple,
+            isRange = false,
             options,
         } = req.body
         
@@ -1861,7 +1553,7 @@ export async function updateAttribute(req: Request, res: Response, next: NextFun
         
         if (attributeName) updateData["attributeName"] = attributeName
         if (attributeLabel) updateData["attributeLabel"] = attributeLabel
-        if (isMultiple) updateData["isMultiple"] = isMultiple
+        if (isRange) updateData["isRange"] = isRange
         if (options) updateData["options"] = options
         
         let isUpdated = await Attributes.findOneAndUpdate(

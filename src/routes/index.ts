@@ -4,6 +4,7 @@ import productRouter from "./productRouter"
 import categoryRouter from "./categoryRouter"
 import brandRouter from "./brandRouter"
 import authRouter from "./authRouter"
+import shopRouter from "./shopRouter";
 
 
 
@@ -13,6 +14,7 @@ router.use("/api/", productRouter)
 router.use("/api/", categoryRouter)
 router.use("/api", authRouter)
 router.use("/api/", brandRouter)
+router.use("/api/", shopRouter)
 
 
 // sellerRouter(router)

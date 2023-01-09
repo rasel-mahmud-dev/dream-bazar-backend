@@ -26,7 +26,8 @@ export const getCategories = async (req: Request, res: Response, next: NextFunct
     try {
         const categories = await Category.find<Category[]>({}, { projection: {
                 name: 1,
-                parentId: 1
+                parentId: 1,
+                isProductLevel: 1
             } })
         res.send(categories)
         
@@ -79,14 +80,11 @@ export const getCategory = async (req: Request, res: Response, next: NextFunctio
 // add a new category
 export const saveCategory = async (req: Request, res: Response, next: NextFunction) => {
     
-    const { name, parentId, isProductLevel,  defaultExpand, filterAttributes, renderProductAttr=[], productDescriptionSection={}} = req.body
+    const { name, parentId=null, isProductLevel=false,  defaultExpand=[], filterAttributes=[], renderProductAttr=[], productDescriptionSection={}} = req.body
 
 
     try {
 
-        if(!(filterAttributes && filterAttributes.length > 0)){
-            return errorResponse(next, "Please provide valid credential", StatusCode.Forbidden)
-        }
 
         let category = await Category.findOne({name})
         if (category) {
@@ -96,7 +94,6 @@ export const saveCategory = async (req: Request, res: Response, next: NextFuncti
         let newCategory = new Category({
             name,
             parentId: parentId ? parentId : null,
-            logo: "",
             isProductLevel: isProductLevel,
             defaultExpand,
             filterAttributes,

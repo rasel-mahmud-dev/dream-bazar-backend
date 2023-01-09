@@ -103,6 +103,8 @@ export const registration = async (req: Request, res: Response, next: NextFuncti
     }
 }
 
+
+
 export const currentAuth = async (req: RequestWithAuth, res: Response, next: NextFunction) => {
 
     
@@ -155,4 +157,5 @@ export const googleLoginController = async (req: RequestWithAuth, res: Response,
         res.redirect((process.env.FRONT_END as string))
     }
 }
+
 

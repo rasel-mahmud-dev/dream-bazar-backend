@@ -18,6 +18,7 @@ export interface UserType {
     roles: Roles[]
     avatar?: string
     accountStatus?: boolean
+    storeId: string | ObjectId
 }
 
 
@@ -36,12 +37,16 @@ class User extends Base implements UserType{
     public avatar: string
     public roles: Roles[]
     public accountStatus?: boolean
+    public storeId: string | ObjectId
 
     static indexes: IndexType = {
         email: {
             unique: true,
         },
         username: {
+            unique: true,
+        },
+        storeId: {
             unique: true,
         }
     }

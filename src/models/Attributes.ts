@@ -5,7 +5,7 @@ export interface AttributesType {
     _id?: string
     attributeName: string
     attributeLabel: string
-    isMultiple?: boolean
+    isRange?: boolean
     options: {name: string, value: any}[]
 }
 
@@ -13,7 +13,7 @@ class Attributes extends Base implements AttributesType {
     _id?: string
     attributeName: string
     attributeLabel: string
-    isMultiple?: boolean
+    isRange?: boolean
     options: {name: string, value: any}[]
     
     static indexes: IndexType = {
@@ -26,7 +26,7 @@ class Attributes extends Base implements AttributesType {
         super(Attributes.collectionName)
         this.attributeName = data.attributeName
         this.attributeLabel = data.attributeLabel
-        this.isMultiple = data.isMultiple
+        this.isRange = data.isRange
         this.options = data.options ?? []
     }
 }

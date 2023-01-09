@@ -33,10 +33,7 @@ class Base {
             try {
                 let {collectionName, ...other} = this;
 
-                let doc = await (await Base.getDatabase(Base.collectionName)).insertOne({
-                    ...other
-                });
-
+                let doc = await (await Base.getDatabase(Base.collectionName)).insertOne(other)
                 if (doc.insertedId) {
                     (other as any)._id = doc.insertedId
                     resolve(other as T)
@@ -66,11 +63,11 @@ class Base {
         });
     }
 
-    static findAndUpdate<T>(filter: mongoDB.Filter<mongoDB.Document>, update: Partial<mongoDB.Document> | mongoDB.UpdateFilter<mongoDB.Document>) {
+    static findAndUpdate<T>(filter: mongoDB.Filter<mongoDB.Document>, update: Partial<mongoDB.Document> | mongoDB.UpdateFilter<mongoDB.Document>, options?: mongoDB.UpdateOptions) {
         return new Promise<T | null>(async (resolve, reject) => {
             try {
                 let {collectionName, ...other} = this;
-                let doc = await (await Base.getDatabase(collectionName)).findOneAndUpdate(filter, update);
+                let doc = await (await Base.getDatabase(collectionName)).updateOne(filter, update, options ? options : {});
                 if (doc) {
                     resolve(other as T)
                 } else {

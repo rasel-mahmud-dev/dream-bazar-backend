@@ -1,11 +1,11 @@
 import {Router} from "express";
-
-const passport = require("passport")
 import isAuth from "../middlewares/isAuth"
 
 
 import {adminAuthLoading, adminLogin} from "../controllers/adminController";
 import {googleLoginController} from "../controllers/authController";
+
+const passport = require("passport")
 
 const authController = require("../controllers/authController")
 
@@ -17,6 +17,7 @@ router.post("/auth/login", authController.login)
 router.post("/admin/login", adminLogin)
 
 router.post("/auth/registration", authController.registration)
+
 
 
 router.get("/auth/current-auth", isAuth(), authController.currentAuth)
@@ -62,26 +63,6 @@ router.get('/auth/callback/facebook',
         console.log("okkk")
     });
 
-// route call via react js
-// router.get('/auth/facebook', async (req, res)=>{
-
-//     // var my_date = Date.now()
-//   // console.log(mongodb.ISODate())
-//     const { c: UserCollection, client} = await dbConnect("users") 
-//     let f = await UserCollection.deleteMany({
-//       username: "name"
-//     })
-//     // let f = await UserCollection.deleteMany({
-//     //   username: "name",
-//     //   email: "email",
-//     //   avatar: "picture",
-//     //   password: "",
-//     //   phone: "",
-//     //   created_at:  new Date()
-//     // })
-//     // console.log(f)
-// })
-//   // passport.authenticate('google', { scope : ['profile', 'email'] }));
 
 export default router;
 
